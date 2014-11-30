@@ -2,8 +2,10 @@ import consensusest.gendata as gen
 import consensusest.sensor as sense
 import consensusest.consensus as con
 import numpy as np
+import logging
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
     dim = 2
     r = gen.gausswalker(100, dims=dim)
 
