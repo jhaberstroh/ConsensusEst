@@ -16,7 +16,7 @@ def main():
     dyn_noise_model = np.eye(2)
     dyn_noise_cov = np.eye(2)
 
-    con.kalmansmoother_twosensor(r.T, sensors=(xm,ym), duration=100, 
+    con.kalmansmoother_network(r.T, sensors=(xm,ym), duration=100, 
             dyn_model=dyn_model, dyn_noise_model=dyn_noise_model,
             dyn_noise_cov=dyn_noise_cov, iters = 10)
 

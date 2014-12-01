@@ -3,10 +3,18 @@ import numpy as np
 import numpy.linalg as LA
 from copy import deepcopy
 
-def kalmansmoother_twosensor(data, sensors, duration, dyn_model, 
-        dyn_noise_model, dyn_noise_cov, iters, ep = 1):
+def kalmansmoother_network(data, sensors, duration, dyn_model, 
+        dyn_noise_model, dyn_noise_cov, iters, ep = 1, graph=None):
     """
     """
+    # If no graph is supplied, full connectivity will be given
+    if graph is None:
+        graph = dict()
+        n_sensor = len(sensors)
+        for node in xrange(n_sensor):
+            graph[node] = range(0,node) + range(node+1, n_sensor)
+
+    # Add the same data to the sensors and pre-compute the locals
     for s in sensors:
         s.add_data(data)
         s.compute_locals_alg3()
@@ -15,6 +23,7 @@ def kalmansmoother_twosensor(data, sensors, duration, dyn_model,
     B = dyn_noise_model
     Q = dyn_noise_cov
     
+    # Create the node-to-node estimates that will be updated
     x_est = []
     P_est = []
     for s in sensors:
@@ -25,9 +34,7 @@ def kalmansmoother_twosensor(data, sensors, duration, dyn_model,
         x_est.append(np.zeros((model_dims,1)))
         P_est.append(np.eye(model_dims) * 1000.)
 
-    graph = {0: [1],
-             1: [0]}
-
+    # Run the filter through the measurements
     for t in xrange(duration):
         print "t = {}: {}".format(t, data[:,t])
         x_prev = deepcopy(x_est)
