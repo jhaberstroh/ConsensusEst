@@ -1,1 +1,13 @@
 Consensus based estimation of timeseries position data
+
+
+DEPENDENCIES
+==========
+Install pygame -- suggested directions for OSX:
+    brew install sdl sdl_image sdl_mixer sdl_ttf portmidi 
+    sudo pip install hg+http://bitbucket.org/pygame/pygame
+
+INSTALLATION
+==========
+Run game.py to run without installation, or use setup.py to
+install for no good reason.
