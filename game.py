@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 import pygame, math, sys
-import kalman_filter
 import numpy as np, scipy as sp
 import random
+
+import consensusest.kalman_filter as kalman_filter
+from consensusest.images import *
 
 from pygame.locals import *
  
