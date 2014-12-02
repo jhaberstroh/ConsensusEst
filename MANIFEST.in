@@ -1,0 +1,2 @@
+include game.py README
+recursive-include package/things *
