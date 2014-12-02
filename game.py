@@ -5,9 +5,14 @@ import numpy as np, scipy as sp
 import random
 
 import consensusest.kalman_filter as kalman_filter
-from consensusest.images import *
 
 from pygame.locals import *
+
+base = 'consensusest/images'
+img_car = base + '/car.png'
+img_est = base + '/crosshair.png'
+img_sensor = base + '/satellite-dish-icon-hi.png'
+
  
 flags = DOUBLEBUF 
 
@@ -117,8 +122,8 @@ class sensor:
 
         self.kf = kalman_filter.kalman_filter(np.identity(2),np.identity(2),np.identity(2),np.identity(2),np.identity(2)) # position only for now
 
-        self.dish_img = pygame.image.load('satellite-dish-icon-hi.png').convert()
-        self.crosshair_img = pygame.image.load('crosshair.png').convert()
+        self.dish_img = pygame.image.load(img_sensor).convert()
+        self.crosshair_img = pygame.image.load(img_est).convert()
 
     def draw(self):
         self.event_manager.post(sensor_draw_event(self))
@@ -142,7 +147,7 @@ class car:
         self.event_manager = event_manager
         self.counter = 0
 
-        self.car_img = pygame.image.load('car.png').convert()
+        self.car_img = pygame.image.load(img_car).convert()
 
     def update_key(self,click_dir):
         if (click_dir == DIRECTION_UP):
