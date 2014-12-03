@@ -5,6 +5,7 @@ import numpy as np, scipy as sp
 import random
 
 import consensusest.kalman_filter as kalman_filter
+import consensusest.sensor as sense
 
 from pygame.locals import *
 
@@ -113,15 +114,31 @@ class keyboard_controller:
 
 class sensor:        
     def __init__(self,x,y,event_manager):
-        self.x = x
-        self.y = y
 
         self.event_manager = event_manager
-
         self.event_manager.register_listener(self)
 
-        self.kf = kalman_filter.kalman_filter(np.identity(2),np.identity(2),np.identity(2),np.identity(2),np.identity(2)) # position only for now
+        init_pos = np.matrix([MAX_X/2., MAX_Y/2.]).T
+        init_err = np.eye(2) * 1000.
+        self.dyn_model       = np.eye(2)
+        self.dyn_noise_model = np.eye(2)
+        self.dyn_noise_cov   = np.eye(2) * 5.
+        # Empty-initialize network and positions
+        self.N = 0
+        self.net     = sense.LiveSensorNetwork(init_pos, init_err)
+        self.net_pos = []
 
+        # Append two sensors to the network
+        xm = sense.Sensor([[1., 0.]], [[5.]]) # Measures x
+        self.net.add_sensor(xm)
+        self.net_pos.append([20, MAX_Y/2])
+        self.N += 1
+        
+        ym = sense.Sensor([[0., 1.]], [[5.]]) # Measures y
+        self.net.add_sensor(ym)
+        self.net_pos.append([MAX_X/2, 20])
+        self.N += 1
+        
         self.dish_img = pygame.image.load(img_sensor).convert()
         self.crosshair_img = pygame.image.load(img_est).convert()
 
@@ -132,7 +149,11 @@ class sensor:
         if (isinstance(event,tick_event)):
             self.draw()
         if (isinstance(event,measurement_event)):
-            self.kf.update(np.matrix([ [ event.measurement[0] + random.gauss(0,MAX_X/100) ], [ event.measurement[1] + random.gauss(0,MAX_Y/100) ] ]))
+            meas = np.array(event.measurement)
+            self.net.stream_data(meas)
+            self.net.iterate_filter(dyn_model = self.dyn_model,
+                                    dyn_noise_model = self.dyn_noise_model,
+                                    dyn_noise_cov = self.dyn_noise_cov)
 
 class car:
     def __init__(self,x,y,speed,direction,turn_speed,max_forward_speed,max_reverse_speed,delta,event_manager):
@@ -272,22 +293,16 @@ class pygame_view:
         crosshair = sensor.crosshair_img
   
         dish_rect = dish.get_rect()
-        dish_rect.center = (sensor.x,sensor.y)
-
-        
-        crosshair_rect = crosshair.get_rect()
-        crosshair_rect.center = sensor.kf.Xest
-
-#        self.window.blit((0,0)
- #       self.window.blit((0,0)
-
-        self.dish_center = dish_rect.center
-        self.crosshair_center = crosshair_rect.center
-
-
-        self.window.blit(sensor.dish_img,dish_rect)
-        self.window.blit(sensor.crosshair_img,crosshair_rect)
-
+        for i in xrange(sensor.N):
+            pos = sensor.net_pos[i]
+            pos_est = sensor.net[i]
+            dish_rect.center = (pos[0], pos[1])
+            crosshair_rect = crosshair.get_rect()
+            crosshair_rect.center = pos_est
+            self.dish_center = dish_rect.center
+            self.crosshair_center = crosshair_rect.center
+            self.window.blit(sensor.dish_img,dish_rect)
+            self.window.blit(sensor.crosshair_img,crosshair_rect)
 
         pygame.display.flip()
     

@@ -175,6 +175,8 @@ class LiveSensorNetwork:
                 self.P_est[i] = np.dot(A, np.dot(Mi, A.T)) + np.dot(B, np.dot(Q, B.T))
                 self.x_est[i] = np.dot(A, x_hat)
             print "Current estimate from {}: {}".format(i, self.x_est[i].T)
+    def __getitem__(self, index):
+        return self.x_est[index]
 
 
 
