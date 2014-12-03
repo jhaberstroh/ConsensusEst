@@ -165,6 +165,7 @@ class LiveSensorNetwork:
                 # within the elements
                 yi = yi + self.sensors[nbr].u[:,0]
                 Si = Si + self.sensors[nbr].U[:,:]
+                logging.debug(self.sensors[nbr].U[:,:])
             for it in xrange(iters):
                 Mi = LA.inv(LA.inv(P_prev[i]) + Si)
                 x_hat = self.x_est[i] + \

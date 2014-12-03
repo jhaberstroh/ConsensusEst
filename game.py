@@ -3,6 +3,7 @@
 import pygame, math, sys
 import numpy as np, scipy as sp
 import random
+import logging
 
 import consensusest.kalman_filter as kalman_filter
 import consensusest.sensor as sense
@@ -13,7 +14,6 @@ base = 'consensusest/images'
 img_car = base + '/car.png'
 img_est = base + '/crosshair.png'
 img_sensor = base + '/satellite-dish-icon-hi.png'
-
  
 flags = DOUBLEBUF 
 
@@ -118,11 +118,11 @@ class sensor:
         self.event_manager = event_manager
         self.event_manager.register_listener(self)
 
-        init_pos = np.matrix([MAX_X/2., MAX_Y/2.]).T
-        init_err = np.eye(2) * 1000.
+        init_pos = np.matrix([20., 20.]).T
+        init_err = np.eye(2) * 100000.
         self.dyn_model       = np.eye(2)
         self.dyn_noise_model = np.eye(2)
-        self.dyn_noise_cov   = np.eye(2) * 5.
+        self.dyn_noise_cov   = np.eye(2) * .3
         # Empty-initialize network and positions
         self.N = 0
         self.net     = sense.LiveSensorNetwork(init_pos, init_err)
@@ -135,7 +135,7 @@ class sensor:
         self.N += 1
         
         ym = sense.Sensor([[0., 1.]], [[5.]]) # Measures y
-        self.net.add_sensor(ym)
+        self.net.add_sensor(ym, [0])
         self.net_pos.append([MAX_X/2, 20])
         self.N += 1
         
@@ -357,4 +357,5 @@ def main():
  
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
     main()
