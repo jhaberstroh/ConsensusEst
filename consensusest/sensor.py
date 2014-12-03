@@ -101,6 +101,7 @@ class LiveSensorNetwork:
         self.network = dict()
         self.x_est = []
         self.P_est = []
+        self.valid = []
         self.x0 = init_pos
         self.P0 = init_err
     def add_sensor(self, sensor, connections = [], x0 = None, P0 = None):
@@ -125,6 +126,7 @@ class LiveSensorNetwork:
         self.network[N] = connections
         for n in connections:
             self.network[n].append(N)
+        self.valid.append(False)
     def update_network(self, new_network):
         """
         Reinitialize the network with a specified symmetric configuration.
@@ -171,6 +173,8 @@ class LiveSensorNetwork:
                 x_hat = self.x_est[i] + \
                         np.dot(Mi, (yi - np.dot(Si, self.x_est[i]) ) )
                 for nbr in self.network[i]:
+                    logging.debug(self.x_est[nbr].shape)
+                    logging.debug(self.x_est[i].shape)
                     x_hat += np.dot(Mi, (self.x_est[nbr] - self.x_est[i])) * epsilon
                 # Update the state of the filter
                 self.P_est[i] = np.dot(A, np.dot(Mi, A.T)) + np.dot(B, np.dot(Q, B.T))
