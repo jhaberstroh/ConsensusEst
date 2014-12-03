@@ -116,8 +116,10 @@ class sensor:
         self.x = x
         self.y = y
 
-        self.event_manager = event_manager
+        self.old_x = x
+        self.old_y = y
 
+        self.event_manager = event_manager
         self.event_manager.register_listener(self)
 
         self.kf = kalman_filter.kalman_filter(np.identity(2),np.identity(2),np.identity(2),np.identity(2),np.identity(2)) # position only for now
@@ -125,14 +127,30 @@ class sensor:
         self.dish_img = pygame.image.load(img_sensor).convert()
         self.crosshair_img = pygame.image.load(img_est).convert()
 
+        self.crosshair_img.set_alpha(64)
+
+        self.background_img_cross = pygame.Surface((4.0*self.dish_img.get_width(), 4.0*self.dish_img.get_height())).convert()
+        self.background_img_cross.fill((0,0,0))
+
+
+        self.background_img_dish = pygame.Surface((4.0*self.dish_img.get_width(), 4.0*self.dish_img.get_height())).convert()
+        self.background_img_dish.fill((0,0,0))
+
+
+        self.old_estimate = self.kf.Xest
+
     def draw(self):
         self.event_manager.post(sensor_draw_event(self))
 
     def notify(self,event):
         if (isinstance(event,tick_event)):
+            self.old_x = self.x
+            self.old_y = self.y
             self.draw()
         if (isinstance(event,measurement_event)):
+            self.old_estimate = self.kf.Xest
             self.kf.update(np.matrix([ [ event.measurement[0] + random.gauss(0,MAX_X/100) ], [ event.measurement[1] + random.gauss(0,MAX_Y/100) ] ]))
+
 
 class car:
     def __init__(self,x,y,speed,direction,turn_speed,max_forward_speed,max_reverse_speed,delta,event_manager):
@@ -148,6 +166,14 @@ class car:
         self.counter = 0
 
         self.car_img = pygame.image.load(img_car).convert()
+        self.background_image = pygame.Surface((self.car_img.get_width(), self.car_img.get_height())).convert()
+        self.background_image.fill((0,0,0))
+
+
+        self.old_x = x
+        self.old_y = y
+        self.old_direction = direction
+        
 
     def update_key(self,click_dir):
         if (click_dir == DIRECTION_UP):
@@ -180,6 +206,10 @@ class car:
         
     
     def update(self):
+
+        self.old_x = self.x
+        self.old_y = self.y
+        self.old_direction = self.direction
 
         self.direction = self.direction + 0.6 * self.turn_speed
         rad = self.direction * math.pi / 180
@@ -245,59 +275,98 @@ class pygame_view:
         self.car_center = (0,0)
         self.crosshair_center = (0,0)
 
+
+        self.dirty_rect_list = []
+
+        self.car = car(x=100,y=100,speed=0,direction=0,turn_speed=0,max_forward_speed = 15,max_reverse_speed = 5,delta = 2, event_manager = self.event_manager)
+        self.sensor = sensor(x=400,y=400,event_manager = self.event_manager)
+
+        self.counter = 0
+
     def show_bg(self):
         self.window.blit( self.background, (0,0) )
         pygame.display.flip()
 
 
-    def show_car(self, car):
-        
+    def show_screen(self):
+
+        # background blits
+#       
+        if (self.counter % 10 == 0):
+            self.window.blit( self.background, (0,0) )
+                
+        redraw = pygame.transform.rotate(self.car.background_image,  self.car.old_direction)  # draw over this
+        redraw_rect = redraw.get_rect()
+        redraw_pos = (self.car.old_x, self.car.old_y)    
+        redraw_rect.center = redraw_pos
+
+        self.window.blit(redraw, redraw_rect)
 
 
-        rotated = pygame.transform.rotate(car.car_img, car.direction)
+
+        dish_bg = self.sensor.background_img_dish
+        dish_bg_rect = dish_bg.get_rect()
+        dish_bg_rect.center = (self.sensor.old_x, self.sensor.old_y)
+
+        self.window.blit(dish_bg, dish_bg_rect)
+
+
+        crosshair_bg = self.sensor.background_img_cross
+        crosshair_bg_rect = crosshair_bg.get_rect()
+        crosshair_bg_rect.center = self.sensor.old_estimate
+
+        self.window.blit(crosshair_bg, crosshair_bg_rect)
+
+#        self.dirty_rect_list += [dish_bg,crosshair_bg]
+
+    # new draws
+
+        rotated = pygame.transform.rotate(self.car.car_img, self.car.direction) # update
         rect = rotated.get_rect()
-        position = (car.x, car.y)
+        position = (self.car.x, self.car.y)
+        rect.center = position        
 
-        rect.center = position
+
+
+
+
         
-        # print position 
+        dish = self.sensor.dish_img
+        dish_rect = dish.get_rect() 
+        dish_rect.center = (self.sensor.x,self.sensor.y)
+
+
+        self.window.blit(dish,dish_rect)
+  
+
+        crosshair = self.sensor.crosshair_img
+        crosshair_rect = crosshair.get_rect()
+        crosshair_rect.center = self.sensor.kf.Xest
 
         self.window.blit(rotated,rect)
-        pygame.display.flip()
+
+        self.window.blit(crosshair,crosshair_rect)
 
 
-    def show_sensor(self, sensor):
+ 
+ #       self.dirty_rect_list += [dish_rect, crosshair_rect]
 
-        dish = sensor.dish_img
-        crosshair = sensor.crosshair_img
-  
-        dish_rect = dish.get_rect()
-        dish_rect.center = (sensor.x,sensor.y)
+#        print(self.dirty_rect_list)
 
-        
-        crosshair_rect = crosshair.get_rect()
-        crosshair_rect.center = sensor.kf.Xest
-
-#        self.window.blit((0,0)
- #       self.window.blit((0,0)
-
-        self.dish_center = dish_rect.center
-        self.crosshair_center = crosshair_rect.center
+        pygame.display.update()
 
 
-        self.window.blit(sensor.dish_img,dish_rect)
-        self.window.blit(sensor.crosshair_img,crosshair_rect)
-
-
-        pygame.display.flip()
     
     def notify(self, event):
+        self.car.notify(event)
+        self.sensor.notify(event)
+
         if (isinstance(event, car_move_event)):
-            self.show_car(event.car)
+            self.show_screen()
         if (isinstance(event, sensor_draw_event)):
-            self.show_sensor(event.sensor)
-        if (isinstance(event, tick_event)):
-            self.show_bg()
+            self.show_screen()
+   #     if (isinstance(event, tick_event)):
+  #          self.show_bg()
 
 class run_loop:
     def __init__(self, event_manager):
@@ -334,8 +403,9 @@ def main():
 
     keybd = keyboard_controller(ev_manager)
     spinner = run_loop (ev_manager)
+
     py_view = pygame_view(ev_manager)
-    gm = game( ev_manager )
+
 
     spinner.run()
  
