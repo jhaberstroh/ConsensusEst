@@ -196,12 +196,12 @@ class sensor:
         self.add_sensor(ym, ym_pos, [0])
         
 
-    def add_sensor(self, senor, pos, connections=None, x0=None):
-        self.net.add_sensor(sensor, connections, x0=x0)
+    def add_sensor(self, new_sensor, pos, connections=[], x0=None):
+        self.net.add_sensor(new_sensor, connections, x0=x0)
         pos = np.array(pos)
         self.net_pos.append(pos)
         self.old_pos.append(pos)
-        self.old_est.append(self.net[i])
+        self.old_est.append(self.net[self.N])
         self.N += 1
 
     def draw(self):
@@ -461,22 +461,6 @@ class run_loop:
     def notify(self, event):
         if isinstance( event, quit_event ):
             self.running = False
- 
-class game:
-    def __init__(self, event_manager):
-        self.event_manager = event_manager
-        self.event_manager.register_listener(self)
-
-        self.car = car( x = CAR_INIT_X, y = CAR_INIT_Y, speed = 0, direction=0,
-                turn_speed=0, max_forward_speed = 15, max_reverse_speed = 5,
-                delta = 2, event_manager = self.event_manager)
-
-        self.sensor = sensor(event_manager=self.event_manager, mode='NETWORK')
-
-    def notify(self, event):
-        self.car.notify(event)
-        self.sensor.notify(event)
-           
 
 def main():
     ev_manager = event_manager()
