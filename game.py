@@ -24,9 +24,9 @@ DIRECTION_UP = 0
 DIRECTION_DOWN = 1
 DIRECTION_LEFT = 2
 DIRECTION_RIGHT = 3
-DRONE_RANGE=200
-DRONE_QTY=6
-DRONE_JITTER=30
+DRONE_RANGE=400
+DRONE_QTY=4
+DRONE_JITTER=50
 
 BLACK = (0,0,0)
 MAX_Y = 768
@@ -130,9 +130,10 @@ class GameSensorNetwork:
         if mode=='NETWORK':
             logging.debug("Initializing NETWORK mode")
             self.network_init()
-        elif mode=='DRONE':
+        elif mode=='DRONE' or 'DRONE2':
             logging.debug("Initializing DRONE mode")
             self.drone_init()
+            self.center_detect=(mode == 'DRONE2')
         else:
             raise ValueError("Invalid type passed to sensor mode: {}"
                     .format(mode))
@@ -149,15 +150,17 @@ class GameSensorNetwork:
                 (4.0*self.dish_img.get_width(), 
                 4.0*self.dish_img.get_height())).convert()
         self.background_img_dish.fill((0,0,0))
+
+
         
         self.crosshair_img.set_alpha(64)
 
     def drone_init(self):
         init_pos = np.matrix([20., 20.]).T
-        init_err = np.eye(2) * .0001
+        init_err = np.eye(2) * .01
         self.dyn_model       = np.eye(2)
         self.dyn_noise_model = np.eye(2)
-        self.dyn_noise_cov   = np.eye(2) * .01
+        self.dyn_noise_cov   = np.eye(2) * .03
         # Empty-initialize network and positions
         self.N = 0
         self.net     = sense.LiveSensorNetwork(init_pos, init_err)
@@ -174,8 +177,7 @@ class GameSensorNetwork:
             drone = sense.Sensor(model = 
                                  [[random.uniform(0, 1), random.uniform(0, 1)],
                                   [random.uniform(0, 1), random.uniform(0, 1)]],
-                                 meas_cov = [[5., 0.],
-                                             [0., 5.]])
+                                 meas_cov = np.eye(2) * 10. )
             logging.debug("Adding drone {} with {} connections"
                     .format(i, range(self.N)))
             self.add_sensor(drone, pos=rand_pos, connections=range(self.N),
@@ -242,7 +244,10 @@ class GameSensorNetwork:
                     logging.debug("MAG {}: {}".format(i, target_mag))
                     if (target_mag < DRONE_RANGE or not self.active):
                         logging.debug("Drone {} in range".format(i))
-                        self.net.stream_data(meas, [i])
+                        if not self.center_detect:
+                            self.net.stream_data(meas, [i])
+                        if self.center_detect:
+                            self.net.stream_data( self.net_pos[i], [i])
                         logging.debug(self.net_pos[i].shape)
                         belief = self.net[i]
                         logging.debug(belief.shape)
@@ -364,7 +369,7 @@ class car:
 class pygame_view:
     def __init__(self, event_manager):
         parser=argparse.ArgumentParser()
-        parser.add_argument('-mode', choices=['NETWORK','DRONE'], 
+        parser.add_argument('-mode', choices=['NETWORK','DRONE', 'DRONE2'], 
                 default='NETWORK', help='Choice for mode of operation')
         args = parser.parse_args()
 

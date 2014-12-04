@@ -136,13 +136,12 @@ class LiveSensorNetwork:
 
         data = np.array(data)
         data.shape = (len(data), 1)
-        print data.shape[1]
 
         for s in sensor_list:
             self.sensors[s].add_data(data)
             self.sensors[s].compute_locals_alg3()
     def iterate_filter(self, dyn_model, dyn_noise_model, dyn_noise_cov,
-            iters = 1, epsilon = 1):
+            iters = 1, epsilon = 1, verbose=False):
         A = dyn_model
         B = dyn_noise_model
         Q = dyn_noise_cov
@@ -169,7 +168,8 @@ class LiveSensorNetwork:
                 # Update the state of the filter
                 self.P_est[i] = np.dot(A, np.dot(Mi, A.T)) + np.dot(B, np.dot(Q, B.T))
                 self.x_est[i] = np.dot(A, x_hat)
-            print "Current estimate from {}: {}".format(i, self.x_est[i].T)
+            if verbose:
+                print "Current estimate from {}: {}".format(i, self.x_est[i].T)
     def __getitem__(self, index):
         return self.x_est[index]
 
