@@ -64,20 +64,9 @@ class Sensor:
         self.meas += noise
 
     def compute_locals_alg3(self):
-        logging.debug('H\' shape: {}'.format(self.H.T.shape))
-        logging.debug('R-1 shape: {}'.format(self.R_inv.shape))
-        logging.debug('zi  shape: {}'.format(self.meas.shape))
         self.u = np.dot(np.dot(self.H.T, self.R_inv), self.meas)
         self.U = np.dot(np.dot(self.H.T, self.R_inv), self.H)
-        logging.debug('u shape: {}'.format(self.u.shape))
-        logging.debug('U shape: {}'.format(self.U.shape))
-        logging.debug('U: \n{}'.format(self.U))
 
-    #def prepare_update(self, step, nbr_meas, nbr_cov, nbr_est):
-    #    raise NotImplementedError("Implementation paused")
-    #    self.y = sum(agg_meas, axis=0) + self.meas[step]
-    #    #self.S = agg_
-                
     def __str__(self):
         s = "Model: {}\n".format(self.model)
         if not self.meas is None:
@@ -163,6 +152,7 @@ class LiveSensorNetwork:
             yi = self.sensors[i].u[:,0]
             Si = self.sensors[i].U[:,:]
             for nbr in self.network[i]:
+                logging.debug("Reading sensor locals {}".format(nbr))
                 # Do NOT use +=, it will modify the objects
                 # within the elements
                 yi = yi + self.sensors[nbr].u[:,0]
