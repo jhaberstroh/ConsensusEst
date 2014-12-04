@@ -1,6 +1,6 @@
-
-
-import numpy as np, scipy as sp
+import numpy as np
+import scipy as sp
+import numpy.random
 
 
 class kalman_filter:         # must hold state as calculation is streaming
@@ -18,23 +18,25 @@ class kalman_filter:         # must hold state as calculation is streaming
 
         self.P = np.identity(np.shape(A)[1])
 
-    def update(self,new_obs):
+    def update(self, new_obs):
         self.Xest = self.A.dot(self.Xest)
-        self.P = (self.A.dot(self.P)).dot(np.transpose(self.A)) + (self.G.dot(self.Q)).dot(np.transpose(self.G))
+
+        # P =  A . P . At  +  G . Q . Gt
+        self.P = (self.A.dot(self.P)).dot(np.transpose(self.A)) + \
+                (self.G.dot(self.Q)).dot(np.transpose(self.G))
         
-
-        self.K = self.P.dot(np.transpose(self.C)).dot(np.linalg.inv(self.C.dot(self.P).dot(np.transpose(self.C)) + self.R))
-
+        # K = P . Ct . (C . P . Ct)-1
+        self.K = self.P.dot(np.transpose(self.C)).dot(np.linalg.inv
+                (self.C.dot(self.P).dot(np.transpose(self.C)) + self.R))
 
         self.Xest = self.Xest + self.K.dot(new_obs - self.C.dot(self.Xest))
         
         self.P = self.P - self.K.dot(self.C).dot(self.P)
 
-
-
-                                                       
-                                                       
-
-                                                      
- 
-
+    def update_noisy(self, new_obs):
+        new_obs = np.array(new_obs)
+        zero_mean = np.zeros(self.R.shape[0])
+        noise = np.random.multivariate_normal(zero_mean, self.R)
+        new_obs += noise
+        new_obs.shape = (len(new_obs), 1)
+        self.update(new_obs)

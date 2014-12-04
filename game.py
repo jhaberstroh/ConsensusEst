@@ -190,7 +190,7 @@ class GameSensorNetwork:
         init_err = np.eye(2) * 10.
         self.dyn_model       = np.eye(2)
         self.dyn_noise_model = np.eye(2)
-        self.dyn_noise_cov   = np.eye(2) * 50.
+        self.dyn_noise_cov   = np.eye(2) * .03
         # Empty-initialize network and positions
         self.N = 0
         self.net     = sense.LiveSensorNetwork(init_pos, init_err)
