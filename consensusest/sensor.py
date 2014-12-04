@@ -64,20 +64,9 @@ class Sensor:
         self.meas += noise
 
     def compute_locals_alg3(self):
-        logging.debug('H\' shape: {}'.format(self.H.T.shape))
-        logging.debug('R-1 shape: {}'.format(self.R_inv.shape))
-        logging.debug('zi  shape: {}'.format(self.meas.shape))
         self.u = np.dot(np.dot(self.H.T, self.R_inv), self.meas)
         self.U = np.dot(np.dot(self.H.T, self.R_inv), self.H)
-        logging.debug('u shape: {}'.format(self.u.shape))
-        logging.debug('U shape: {}'.format(self.U.shape))
-        logging.debug('U: \n{}'.format(self.U))
 
-    #def prepare_update(self, step, nbr_meas, nbr_cov, nbr_est):
-    #    raise NotImplementedError("Implementation paused")
-    #    self.y = sum(agg_meas, axis=0) + self.meas[step]
-    #    #self.S = agg_
-                
     def __str__(self):
         s = "Model: {}\n".format(self.model)
         if not self.meas is None:
@@ -101,6 +90,7 @@ class LiveSensorNetwork:
         self.network = dict()
         self.x_est = []
         self.P_est = []
+        self.valid = []
         self.x0 = init_pos
         self.P0 = init_err
     def add_sensor(self, sensor, connections = [], x0 = None, P0 = None):
@@ -125,6 +115,7 @@ class LiveSensorNetwork:
         self.network[N] = connections
         for n in connections:
             self.network[n].append(N)
+        self.valid.append(False)
     def update_network(self, new_network):
         """
         Reinitialize the network with a specified symmetric configuration.
@@ -145,13 +136,12 @@ class LiveSensorNetwork:
 
         data = np.array(data)
         data.shape = (len(data), 1)
-        print data.shape[1]
 
         for s in sensor_list:
             self.sensors[s].add_data(data)
             self.sensors[s].compute_locals_alg3()
     def iterate_filter(self, dyn_model, dyn_noise_model, dyn_noise_cov,
-            iters = 1, epsilon = 1):
+            iters = 1, epsilon = 1, verbose=False):
         A = dyn_model
         B = dyn_noise_model
         Q = dyn_noise_cov
@@ -161,20 +151,27 @@ class LiveSensorNetwork:
             yi = self.sensors[i].u[:,0]
             Si = self.sensors[i].U[:,:]
             for nbr in self.network[i]:
+                logging.debug("Reading sensor locals {}".format(nbr))
                 # Do NOT use +=, it will modify the objects
                 # within the elements
                 yi = yi + self.sensors[nbr].u[:,0]
                 Si = Si + self.sensors[nbr].U[:,:]
+                logging.debug(self.sensors[nbr].U[:,:])
             for it in xrange(iters):
                 Mi = LA.inv(LA.inv(P_prev[i]) + Si)
                 x_hat = self.x_est[i] + \
                         np.dot(Mi, (yi - np.dot(Si, self.x_est[i]) ) )
                 for nbr in self.network[i]:
+                    logging.debug(self.x_est[nbr].shape)
+                    logging.debug(self.x_est[i].shape)
                     x_hat += np.dot(Mi, (self.x_est[nbr] - self.x_est[i])) * epsilon
                 # Update the state of the filter
                 self.P_est[i] = np.dot(A, np.dot(Mi, A.T)) + np.dot(B, np.dot(Q, B.T))
                 self.x_est[i] = np.dot(A, x_hat)
-            print "Current estimate from {}: {}".format(i, self.x_est[i].T)
+            if verbose:
+                print "Current estimate from {}: {}".format(i, self.x_est[i].T)
+    def __getitem__(self, index):
+        return self.x_est[index]
 
 
 
